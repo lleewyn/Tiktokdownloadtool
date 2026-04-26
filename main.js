@@ -171,6 +171,13 @@ function saveToHistory(newVideos) {
 }
 
 zipBtn.addEventListener('click', async () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && videosToDownload.length > 10) {
+        if (!confirm('Bạn đang dùng điện thoại, việc nén file ZIP quá lớn có thể gây lỗi trình duyệt. Bạn nên tải lẻ từng video hoặc giảm số lượng link. Vẫn tiếp tục?')) {
+            return;
+        }
+    }
+
     zipBtn.disabled = true;
     zipBtn.innerText = 'Đang nén file (Vui lòng chờ)...';
     
@@ -199,13 +206,18 @@ zipBtn.addEventListener('click', async () => {
             let blobData = null;
             const proxies = [
                 `https://api.allorigins.win/raw?url=${encodeURIComponent(video.url)}`,
-                `https://corsproxy.io/?${encodeURIComponent(video.url)}`
+                `https://corsproxy.io/?${encodeURIComponent(video.url)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(video.url)}`
             ];
 
             for (const proxyUrl of proxies) {
                 try {
-                    const response = await axios.get(proxyUrl, { responseType: 'blob', timeout: 15000 });
-                    if (response.data) {
+                    const response = await axios.get(proxyUrl, { 
+                        responseType: 'blob', 
+                        timeout: 20000,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (response.data && response.data.size > 0) {
                         blobData = response.data;
                         break;
                     }
@@ -262,18 +274,35 @@ function createItemElement(url) {
 }
 
 async function downloadFile(url, filename) {
-    // Try multiple proxies if one fails
     const proxies = [
         `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
         `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        url // Final try direct
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
     ];
 
     for (const targetUrl of proxies) {
         try {
-            const response = await axios.get(targetUrl, { responseType: 'blob', timeout: 10000 });
-            if (response.data) {
-                saveAs(response.data, filename);
+            const response = await axios.get(targetUrl, { 
+                responseType: 'blob', 
+                timeout: 20000,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            
+            if (response.data && response.data.size > 0) {
+                // Better mobile support for blob saving
+                if (navigator.msSaveBlob) {
+                    return navigator.msSaveBlob(response.data, filename);
+                }
+                const blobUrl = window.URL.createObjectURL(response.data);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(blobUrl);
+                }, 100);
                 return true;
             }
         } catch (e) {
