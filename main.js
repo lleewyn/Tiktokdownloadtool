@@ -202,26 +202,41 @@ zipBtn.addEventListener('click', async () => {
             });
 
             let blobData = null;
-            const proxies = [
-                `https://corsproxy.io/?${encodeURIComponent(video.url)}`,
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(video.url)}`,
-                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(video.url)}`
-            ];
-
-            for (const proxyUrl of proxies) {
-                try {
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    const blob = await response.blob();
-                    
-                    if (blob && blob.size > 0) {
-                        blobData = blob;
-                        break;
+            
+            // Try Method 1: AllOrigins JSON (Most reliable)
+            try {
+                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(video.url)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.contents) {
+                        const blobResponse = await fetch(data.contents);
+                        blobData = await blobResponse.blob();
                     }
-                } catch (err) { console.warn('Proxy failed in zip:', proxyUrl); }
+                }
+            } catch (err) { console.warn('AllOrigins JSON failed in zip'); }
+
+            // Try Method 2: Direct Proxy Fetch if Method 1 failed
+            if (!blobData) {
+                const proxies = [
+                    `https://corsproxy.io/?${encodeURIComponent(video.url)}`,
+                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(video.url)}`
+                ];
+
+                for (const proxyUrl of proxies) {
+                    try {
+                        const response = await fetch(proxyUrl);
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            if (blob && blob.size > 0) {
+                                blobData = blob;
+                                break;
+                            }
+                        }
+                    } catch (err) { console.warn('Proxy failed in zip:', proxyUrl); }
+                }
             }
 
-            if (blobData) {
+            if (blobData && blobData.size > 0) {
                 folder.file(`${currentTitle.substring(0, 50)}.mp4`, blobData);
                 count++;
             }
@@ -290,36 +305,53 @@ function createItemElement(url) {
 }
 
 async function downloadFile(url, filename) {
+    // Method 1: AllOrigins JSON (Slow but very reliable for CORS)
+    try {
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.contents) {
+                const blobResponse = await fetch(data.contents);
+                const blob = await blobResponse.blob();
+                if (blob && blob.size > 0) {
+                    return saveBlobToDisk(blob, filename);
+                }
+            }
+        }
+    } catch (e) { console.warn('AllOrigins JSON method failed'); }
+
+    // Method 2: Direct Proxy Fetch (Faster)
     const proxies = [
         `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
     ];
 
     for (const targetUrl of proxies) {
         try {
             const response = await fetch(targetUrl);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const blob = await response.blob();
-            
-            if (blob && blob.size > 0) {
-                const blobUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(blobUrl);
-                }, 100);
-                return true;
+            if (response.ok) {
+                const blob = await response.blob();
+                if (blob && blob.size > 0) {
+                    return saveBlobToDisk(blob, filename);
+                }
             }
-        } catch (e) {
-            console.warn(`Proxy failed: ${targetUrl}`, e);
-        }
+        } catch (e) { console.warn(`Proxy failed: ${targetUrl}`); }
     }
     return false;
+}
+
+function saveBlobToDisk(blob, filename) {
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+    }, 100);
+    return true;
 }
 
 function updateStatus(el, status, downloadUrl = null, title = null, cover = null) {
