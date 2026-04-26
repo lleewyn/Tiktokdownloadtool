@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Batch Downloader - No Watermark</title>
+    <meta name="description" content="Tải hàng loạt video TikTok không logo, không hình mờ cực nhanh và miễn phí.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    
+    <div class="container">
+        <header>
+            <h1>TikTok Downloader</h1>
+            <p>Bỏ 20-50 link và tải hàng loạt không logo trong 1 click</p>
+        </header>
+
+
+        <main class="main-card">
+            <div class="input-group">
+                <label for="links">Danh sách link TikTok (Mỗi dòng 1 link)</label>
+                <textarea id="links" placeholder="https://www.tiktok.com/@user/video/1234567890&#10;https://vt.tiktok.com/ZS12345/"></textarea>
+            </div>
+
+            <div class="actions">
+                <button id="start-btn" class="btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Bắt đầu tải (Tự động xoá logo)
+                </button>
+                <button id="history-btn" class="btn-secondary">Lịch sử tải</button>
+                <button id="clear-btn" class="btn-secondary">Xoá trắng</button>
+            </div>
+
+            <div id="progress-section" class="progress-container">
+                <div class="progress-header">
+                    <span id="progress-status">Đang xử lý...</span>
+                    <span id="progress-percent">0/0</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="progress-bar" class="progress-bar-fill"></div>
+                </div>
+
+                <div class="search-group" style="margin-bottom: 1rem; display: none;" id="search-container">
+                    <input type="text" id="search-input" placeholder="Tìm kiếm theo tiêu đề video..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); color: white;">
+                </div>
+                
+                <div id="item-list" class="item-list">
+                    <!-- Items will be injected here -->
+                </div>
+
+                <div id="download-all-container" style="display: none; margin-top: 2rem;">
+                    <button id="zip-btn" class="btn-primary" style="background: linear-gradient(135deg, var(--secondary) 0%, #1DC8C2 100%);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Tải về file ZIP (.zip)
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Batch TikTok Downloader Pro. Built with AI.</p>
+        </footer>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
