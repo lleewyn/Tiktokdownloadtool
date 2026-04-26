@@ -237,7 +237,26 @@ zipBtn.addEventListener('click', async () => {
         saveAs(content, "tiktok_batch_downloads.zip");
         zipBtn.innerText = 'Tải về hoàn tất!';
     } else {
-        alert('Không thể tải dữ liệu video vào file ZIP. Vui lòng thử nút "Tải lẻ" ở từng video.');
+        const confirmAuto = confirm('Không thể tạo file ZIP do giới hạn trình duyệt. Bạn có muốn hệ thống tự động tải xuống từng video một không? (Lưu ý: Bạn cần cho phép trình duyệt tải nhiều file)');
+        if (confirmAuto) {
+            zipBtn.innerText = 'Đang tải hàng loạt...';
+            for (let i = 0; i < videosToDownload.length; i++) {
+                const video = videosToDownload[i];
+                zipBtn.innerText = `Đang tải ${i+1}/${videosToDownload.length}...`;
+                const itemEls = itemList.querySelectorAll('.video-item');
+                let currentTitle = video.title;
+                itemEls.forEach(el => {
+                    if (el.querySelector('.item-url').innerText === video.originalUrl) {
+                        currentTitle = el.querySelector('.item-title').innerText;
+                    }
+                });
+                await downloadFile(video.url, `${currentTitle.substring(0, 50)}.mp4`);
+                await new Promise(r => setTimeout(r, 1500)); // Delay to prevent browser blocking
+            }
+            zipBtn.innerText = 'Đã tải xong toàn bộ!';
+        } else {
+            zipBtn.innerText = 'Tải về thất bại';
+        }
     }
 
     zipBtn.disabled = false;
