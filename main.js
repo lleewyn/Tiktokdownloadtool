@@ -192,10 +192,8 @@ zipBtn.addEventListener('click', async () => {
         const batch = videosToDownload.slice(i, i + batchSize);
         zipBtn.innerText = `Đang tải video ${i + 1}-${Math.min(i + batchSize, total)}/${total}...`;
         
-        await Promise.all(batch.map(async (video, index) => {
-            // Find the current title from the DOM for this specific video
+        await Promise.all(batch.map(async (video) => {
             const itemEls = itemList.querySelectorAll('.video-item');
-            // This is a bit tricky if items are filtered, so we find by originalUrl
             let currentTitle = video.title;
             itemEls.forEach(el => {
                 if (el.querySelector('.item-url').innerText === video.originalUrl) {
@@ -205,20 +203,19 @@ zipBtn.addEventListener('click', async () => {
 
             let blobData = null;
             const proxies = [
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(video.url)}`,
                 `https://corsproxy.io/?${encodeURIComponent(video.url)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(video.url)}`,
                 `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(video.url)}`
             ];
 
             for (const proxyUrl of proxies) {
                 try {
-                    const response = await axios.get(proxyUrl, { 
-                        responseType: 'blob', 
-                        timeout: 20000,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-                    if (response.data && response.data.size > 0) {
-                        blobData = response.data;
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const blob = await response.blob();
+                    
+                    if (blob && blob.size > 0) {
+                        blobData = blob;
                         break;
                     }
                 } catch (err) { console.warn('Proxy failed in zip:', proxyUrl); }
@@ -294,25 +291,19 @@ function createItemElement(url) {
 
 async function downloadFile(url, filename) {
     const proxies = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
         `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
     ];
 
     for (const targetUrl of proxies) {
         try {
-            const response = await axios.get(targetUrl, { 
-                responseType: 'blob', 
-                timeout: 20000,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
+            const response = await fetch(targetUrl);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
             
-            if (response.data && response.data.size > 0) {
-                // Better mobile support for blob saving
-                if (navigator.msSaveBlob) {
-                    return navigator.msSaveBlob(response.data, filename);
-                }
-                const blobUrl = window.URL.createObjectURL(response.data);
+            if (blob && blob.size > 0) {
+                const blobUrl = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = blobUrl;
                 link.download = filename;
