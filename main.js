@@ -15,8 +15,39 @@ const historyBtn = document.getElementById('history-btn');
 const searchContainer = document.getElementById('search-container');
 const searchInput = document.getElementById('search-input');
 
+const downloadAllIndBtn = document.getElementById('download-all-ind-btn');
+
 let videosToDownload = [];
 let allProcessedVideos = []; // For search and history
+
+// Individual Download All Logic
+downloadAllIndBtn.addEventListener('click', async () => {
+    downloadAllIndBtn.disabled = true;
+    const originalText = downloadAllIndBtn.innerText;
+    
+    for (let i = 0; i < videosToDownload.length; i++) {
+        const video = videosToDownload[i];
+        downloadAllIndBtn.innerText = `Đang tải ${i+1}/${videosToDownload.length}...`;
+        
+        // Get current title from UI
+        const itemEls = itemList.querySelectorAll('.video-item');
+        let currentTitle = video.title;
+        itemEls.forEach(el => {
+            if (el.querySelector('.item-url').innerText === video.originalUrl) {
+                currentTitle = el.querySelector('.item-title').innerText;
+            }
+        });
+
+        await downloadFile(video.url, `${currentTitle.substring(0, 50)}.mp4`);
+        await new Promise(r => setTimeout(r, 1500)); // Delay to prevent browser blocking
+    }
+    
+    downloadAllIndBtn.innerText = 'Hoàn tất tải lẻ!';
+    setTimeout(() => {
+        downloadAllIndBtn.disabled = false;
+        downloadAllIndBtn.innerText = originalText;
+    }, 3000);
+});
 
 startBtn.addEventListener('click', async () => {
     const rawLinks = linksArea.value.trim().split('\n').map(l => l.trim()).filter(l => l !== '');
